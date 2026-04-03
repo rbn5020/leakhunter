@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeakHunter - Finde versteckte €50-500k in 5 Minuten</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0e1a;
+            --bg-card: #141824;
+            --electric-blue: #00d4ff;
+            --electric-cyan: #00fff5;
+            --warning-orange: #ff6b35;
+            --success-green: #00ff88;
+            --text-primary: #ffffff;
+            --text-secondary: #8892b0;
+            --border-color: #1e2436;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 60px 20px 40px;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .logo {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--electric-blue), var(--electric-cyan));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            letter-spacing: -2px;
+        }
+
+        .headline {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.8rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #ffffff, #8892b0);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subheadline {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+        }
+
+        .highlight {
+            color: var(--electric-cyan);
+            font-weight: 600;
+        }
+
+        /* Scanner Card */
+        .scanner-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 60px rgba(0, 212, 255, 0.1);
+            animation: fadeInUp 1s ease 0.2s backwards;
+        }
+
+        .scanner-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .scanner-title {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.4rem;
+            margin-bottom: 10px;
+            color: var(--electric-cyan);
+        }
+
+        .scanner-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Chat Interface */
+        .chat-container {
+            min-height: 400px;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .message.assistant {
+            display: flex;
+            gap: 12px;
+        }
+
+        .message.user {
+            display: flex;
+            gap: 12px;
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .message.assistant .message-avatar {
+            background: linear-gradient(135deg, var(--electric-blue), var(--electric-cyan));
+        }
+
+        .message.user .message-avatar {
+            background: var(--border-color);
+        }
+
+        .message-bubble {
+            background: var(--border-color);
+            padding: 16px 20px;
+            border-radius: 12px;
+            max-width: 80%;
+        }
+
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, #1a3a52, #0d2235);
+            border: 1px solid var(--electric-blue);
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 16px 20px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--electric-cyan);
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        /* Input Area */
+        .input-container {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .input-field {
+            flex: 1;
+            background: var(--border-color);
+            border: 1px solid transparent;
+            border-radius: 12px;
+            padding: 14px 20px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--electric-blue);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--electric-blue), var(--electric-cyan));
+            color: var(--bg-dark);
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(0, 212, 255, 0.5);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Report Section */
+        .report-container {
+            display: none;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .report-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .report-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.2rem;
+            margin-bottom: 12px;
+        }
+
+        .report-summary {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+        }
+
+        .total-potential {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 255, 245, 0.1));
+            border: 2px solid var(--electric-cyan);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .total-label {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .total-amount {
+            font-family: 'Orbitron', monospace;
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: var(--electric-cyan);
+            margin-bottom: 8px;
+        }
+
+        .total-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .leak-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .leak-card:hover {
+            border-color: var(--electric-blue);
+            box-shadow: 0 8px 30px rgba(0, 212, 255, 0.15);
+        }
+
+        .leak-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .leak-title {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .leak-amount {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--electric-cyan);
+        }
+
+        .confidence-bar {
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--electric-blue), var(--electric-cyan));
+            transition: width 1s ease;
+        }
+
+        .confidence-label {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .leak-description {
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+
+        .leak-action {
+            font-weight: 600;
+            color: var(--electric-cyan);
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 255, 245, 0.05));
+            border: 2px solid var(--electric-blue);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .cta-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.8rem;
+            margin-bottom: 16px;
+        }
+
+        .cta-description {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            font-size: 1.05rem;
+        }
+
+        .cta-price {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--electric-cyan);
+            margin-bottom: 20px;
+        }
+
+        .cta-features {
+            text-align: left;
+            max-width: 500px;
+            margin: 0 auto 30px;
+        }
+
+        .cta-feature {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+        }
+
+        .cta-feature::before {
+            content: '⚡';
+            font-size: 1.2rem;
+        }
+
+        .btn-cta {
+            background: linear-gradient(135deg, var(--electric-blue), var(--electric-cyan));
+            color: var(--bg-dark);
+            padding: 18px 48px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-family: 'IBM Plex Mono', monospace;
+            box-shadow: 0 8px 30px rgba(0, 212, 255, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .btn-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(0, 212, 255, 0.6);
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.7;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .headline {
+                font-size: 2rem;
+            }
+
+            .scanner-card {
+                padding: 24px;
+            }
+
+            .message-bubble {
+                max-width: 90%;
+            }
+
+            .total-amount {
+                font-size: 2.5rem;
+            }
+
+            .leak-header {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .cta-section {
+                padding: 24px;
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .error-message {
+            background: rgba(255, 107, 53, 0.1);
+            border: 1px solid var(--warning-orange);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--warning-orange);
+            margin-top: 12px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    
+    <div class="container">
+        <!-- Hero Section -->
+        <div class="hero">
+            <div class="logo">LEAKHUNTER</div>
+            <h1 class="headline">Finde versteckte<br>€50-500k in 5 Minuten</h1>
+            <p class="subheadline">
+                Kostenloser <span class="highlight">Energy Margin Check</span> für Ihr Unternehmen.<br>
+                Nur zahlen, wenn wir echtes Potenzial finden.
+            </p>
+        </div>
+
+        <!-- Scanner Section -->
+        <div class="scanner-card" id="scannerSection">
+            <div class="scanner-header">
+                <h2 class="scanner-title">AI-POWERED LEAK DETECTION</h2>
+                <p class="scanner-subtitle">Beantworten Sie 5 einfache Fragen – unser AI analysiert sofort Ihre Energiekosten</p>
+            </div>
+
+            <div class="chat-container" id="chatContainer">
+                <!-- Messages will be inserted here -->
+            </div>
+
+            <div class="input-container">
+                <input 
+                    type="text" 
+                    class="input-field" 
+                    id="userInput" 
+                    placeholder="Ihre Antwort..."
+                    disabled
+                >
+                <button class="btn btn-primary" id="sendBtn" disabled>
+                    Senden
+                </button>
+            </div>
+
+            <div id="errorContainer"></div>
+        </div>
+
+        <!-- Report Section (Hidden initially) -->
+        <div class="report-container" id="reportSection">
+            <div class="scanner-card">
+                <div class="report-header">
+                    <h2 class="report-title">Ihre Margin-Leak-Analyse</h2>
+                    <p class="report-summary">Wir haben <span id="companyName"></span> analysiert</p>
+                </div>
+
+                <div class="total-potential">
+                    <div class="total-label">Geschätztes Einsparpotenzial</div>
+                    <div class="total-amount" id="totalPotential">€0</div>
+                    <div class="total-subtitle">pro Jahr bei sofortiger Optimierung</div>
+                </div>
+
+                <div id="leakCards">
+                    <!-- Leak cards will be inserted here -->
+                </div>
+
+                <div class="cta-section">
+                    <h3 class="cta-title">Holen Sie dieses Geld zurück</h3>
+                    <p class="cta-description">
+                        Deep Dive Audit – Wir analysieren alle Ihre Verträge im Detail und liefern Ihnen konkrete Tarif-Alternativen und Optimierungsschritte.
+                    </p>
+                    <div class="cta-price">€2.900</div>
+                    <div class="cta-features">
+                        <div class="cta-feature">Komplette Vertrags-Analyse (alle Energie-Lieferanten)</div>
+                        <div class="cta-feature">Konkrete Tarif-Alternativen mit Savings-Berechnung</div>
+                        <div class="cta-feature">BAFA Industriestrompreis Antrags-Vorbereitung</div>
+                        <div class="cta-feature">Direkte Verhandlungs-Unterstützung</div>
+                        <div class="cta-feature">Garantiertes Mindest-Saving von €15.000/Jahr</div>
+                    </div>
+                    <button class="btn-cta" onclick="bookAudit()">
+                        Deep Dive Audit buchen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Conversation state
+        let conversationHistory = [];
+        let collectedData = {};
+        let isProcessing = false;
+
+        // Questions flow
+        const questions = [
+            {
+                id: 'company',
+                text: 'Perfekt! Lass uns starten. Wie heißt Ihr Unternehmen?',
+                collect: 'companyName'
+            },
+            {
+                id: 'industry',
+                text: 'Danke! In welcher Branche sind Sie tätig? (z.B. Metall, Chemie, Maschinenbau, Lebensmittel, etc.)',
+                collect: 'industry'
+            },
+            {
+                id: 'employees',
+                text: 'Verstanden. Wie viele Mitarbeiter hat Ihr Unternehmen ungefähr?',
+                collect: 'employees'
+            },
+            {
+                id: 'consumption',
+                text: 'Gut! Wie hoch ist Ihr jährlicher Stromverbrauch? (Falls Sie es nicht genau wissen, schätzen Sie bitte in kWh oder sagen Sie "weiß nicht")',
+                collect: 'consumption'
+            },
+            {
+                id: 'currentPrice',
+                text: 'Letzte Frage: Was zahlen Sie aktuell ungefähr pro kWh? (Schauen Sie auf Ihre letzte Rechnung, oder schätzen Sie zwischen 0,15€ - 0,35€)',
+                collect: 'currentPrice'
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            startConversation();
+            
+            // Event listeners
+            document.getElementById('sendBtn').addEventListener('click', handleUserInput);
+            document.getElementById('userInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !isProcessing) {
+                    handleUserInput();
+                }
+            });
+        });
+
+        function startConversation() {
+            const welcomeMessage = "👋 Willkommen beim LeakHunter Energy Check!\n\nIch bin Ihr AI-Assistent und werde in den nächsten 3 Minuten herausfinden, ob Sie bei Ihren Energiekosten Geld verschenken.\n\nBereit? Dann klicken Sie auf 'Starten'.";
+            
+            addMessage('assistant', welcomeMessage);
+            
+            // Enable input and change button to "Starten"
+            const sendBtn = document.getElementById('sendBtn');
+            const userInput = document.getElementById('userInput');
+            
+            sendBtn.textContent = 'Starten';
+            sendBtn.disabled = false;
+            userInput.disabled = false;
+            userInput.placeholder = 'Klicken Sie auf "Starten"';
+        }
+
+        function addMessage(role, text) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = role === 'assistant' ? '⚡' : '👤';
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.textContent = text;
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(bubble);
+            chatContainer.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showTyping() {
+            const chatContainer = document.getElementById('chatContainer');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message assistant';
+            typingDiv.id = 'typingIndicator';
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = '⚡';
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble typing-indicator';
+            bubble.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+            
+            typingDiv.appendChild(avatar);
+            typingDiv.appendChild(bubble);
+            chatContainer.appendChild(typingDiv);
+            
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function hideTyping() {
+            const typing = document.getElementById('typingIndicator');
+            if (typing) {
+                typing.remove();
+            }
+        }
+
+        async function handleUserInput() {
+            if (isProcessing) return;
+            
+            const userInput = document.getElementById('userInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const userMessage = userInput.value.trim();
+            
+            // First message is just "Starten"
+            if (currentQuestionIndex === 0 && sendBtn.textContent === 'Starten') {
+                sendBtn.textContent = 'Senden';
+                userInput.value = '';
+                askNextQuestion();
+                return;
+            }
+            
+            if (!userMessage) return;
+            
+            // Add user message
+            addMessage('user', userMessage);
+            userInput.value = '';
+            
+            // Disable input
+            isProcessing = true;
+            sendBtn.disabled = true;
+            userInput.disabled = true;
+            
+            // Collect data
+            if (currentQuestionIndex > 0 && currentQuestionIndex <= questions.length) {
+                const question = questions[currentQuestionIndex - 1];
+                collectedData[question.collect] = userMessage;
+            }
+            
+            // Show typing
+            showTyping();
+            
+            // Simulate processing delay
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+            
+            hideTyping();
+            
+            // Ask next question or generate report
+            if (currentQuestionIndex < questions.length) {
+                askNextQuestion();
+            } else {
+                await generateReport();
+            }
+            
+            // Re-enable input
+            isProcessing = false;
+            sendBtn.disabled = false;
+            userInput.disabled = false;
+            userInput.focus();
+        }
+
+        function askNextQuestion() {
+            if (currentQuestionIndex < questions.length) {
+                const question = questions[currentQuestionIndex];
+                addMessage('assistant', question.text);
+                currentQuestionIndex++;
+            }
+        }
+
+        async function generateReport() {
+            addMessage('assistant', '🔍 Perfekt! Ich analysiere jetzt Ihre Daten und berechne Ihr Einsparpotenzial...');
+            
+            // Hide scanner, show loading
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Calculate potential based on collected data
+            const report = calculateLeakPotential(collectedData);
+            
+            // Show report
+            displayReport(report);
+        }
+
+        function calculateLeakPotential(data) {
+            // Parse consumption
+            let consumption = 0;
+            if (data.consumption.toLowerCase().includes('weiß nicht')) {
+                // Estimate based on employees
+                const employees = parseInt(data.employees.replace(/\D/g, '')) || 50;
+                consumption = employees * 8000; // 8 MWh per employee estimate
+            } else {
+                consumption = parseInt(data.consumption.replace(/\D/g, '')) || 500000;
+            }
+            
+            // Parse current price
+            let currentPrice = parseFloat(data.currentPrice.replace(',', '.').replace(/[^\d.]/g, '')) || 0.28;
+            
+            // Calculate leaks
+            const leaks = [];
+            
+            // Leak 1: Netzentgelte-Senkung 2026
+            const netzentgelteBase = consumption * 0.08; // 8 ct/kWh average network charges
+            const netzentgelteSaving = netzentgelteBase * 0.57; // 57% reduction on federal portion
+            const netzentgelteOptimization = netzentgelteSaving * 0.3; // 30% not fully utilized
+            
+            leaks.push({
+                title: 'Netzentgelte-Optimierung 2026',
+                amount: Math.round(netzentgelteOptimization),
+                confidence: 85,
+                description: `Die Bundesregierung hat die Übertragungsnetzentgelte 2026 um bis zu 57% gesenkt. Viele Unternehmen nutzen diese Senkung nicht voll aus, weil alte Verträge oder falsche Tarifmodelle vorliegen.`,
+                action: 'Vertragsoptimierung + Tarif-Check erforderlich'
+            });
+            
+            // Leak 2: Tarif-Drift
+            const marketPrice = 0.21; // Current market average
+            const priceDrift = Math.max(0, currentPrice - marketPrice);
+            const driftSaving = consumption * priceDrift;
+            
+            if (driftSaving > 1000) {
+                leaks.push({
+                    title: 'Tarif-Drift (zu teurer Strompreis)',
+                    amount: Math.round(driftSaving),
+                    confidence: 92,
+                    description: `Sie zahlen ${currentPrice.toFixed(2)}€/kWh, während der aktuelle Marktdurchschnitt bei ~${marketPrice}€/kWh liegt. Das bedeutet: Sie verschenken ${(priceDrift * 100).toFixed(1)} Cent pro kWh.`,
+                    action: 'Sofortiger Tarif-Wechsel oder Neuverhandlung empfohlen'
+                });
+            }
+            
+            // Leak 3: Industriestrompreis (for eligible companies)
+            const eligibleIndustries = ['metall', 'chemie', 'glas', 'papier', 'stahl'];
+            const isEligible = eligibleIndustries.some(ind => 
+                data.industry.toLowerCase().includes(ind)
+            );
+            
+            if (isEligible && consumption > 100000) {
+                const industrialDiscount = consumption * 0.06; // 6 ct/kWh average discount
+                leaks.push({
+                    title: 'Industriestrompreis-Förderung (nicht beantragt)',
+                    amount: Math.round(industrialDiscount * 0.7), // Assume 70% eligible
+                    confidence: 75,
+                    description: `Ihre Branche (${data.industry}) ist für den BAFA Industriestrompreis qualifiziert. Rückwirkende Antragstellung bis September 2027 möglich.`,
+                    action: 'BAFA-Antrag vorbereiten + Dokumentation prüfen'
+                });
+            }
+            
+            // Calculate total
+            const totalPotential = leaks.reduce((sum, leak) => sum + leak.amount, 0);
+            
+            return {
+                companyName: data.companyName,
+                totalPotential,
+                leaks
+            };
+        }
+
+        function displayReport(report) {
+            // Hide scanner
+            document.getElementById('scannerSection').style.display = 'none';
+            
+            // Show report
+            const reportSection = document.getElementById('reportSection');
+            reportSection.style.display = 'block';
+            
+            // Fill in data
+            document.getElementById('companyName').textContent = report.companyName;
+            document.getElementById('totalPotential').textContent = `€${report.totalPotential.toLocaleString('de-DE')}`;
+            
+            // Create leak cards
+            const leakCardsContainer = document.getElementById('leakCards');
+            leakCardsContainer.innerHTML = '';
+            
+            report.leaks.forEach((leak, index) => {
+                const card = document.createElement('div');
+                card.className = 'leak-card';
+                card.style.animationDelay = `${index * 0.1}s`;
+                
+                card.innerHTML = `
+                    <div class="leak-header">
+                        <div class="leak-title">${leak.title}</div>
+                        <div class="leak-amount">€${leak.amount.toLocaleString('de-DE')}</div>
+                    </div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: 0%;" data-width="${leak.confidence}%"></div>
+                    </div>
+                    <div class="confidence-label">Confidence Score: ${leak.confidence}%</div>
+                    <div class="leak-description">${leak.description}</div>
+                    <div class="leak-action">→ ${leak.action}</div>
+                `;
+                
+                leakCardsContainer.appendChild(card);
+                
+                // Animate confidence bar
+                setTimeout(() => {
+                    const fill = card.querySelector('.confidence-fill');
+                    fill.style.width = fill.dataset.width;
+                }, 100 + (index * 100));
+            });
+            
+            // Scroll to report
+            reportSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function bookAudit() {
+            // In production, this would open a calendar/booking system
+            alert('Deep Dive Audit Buchung\n\nIn der Produktionsversion öffnet sich hier ein Calendly/Booking-Link.\n\nFür Demo: Kontakt aufnehmen unter [email protected]');
+        }
+    </script>
+</body>
+</html>
